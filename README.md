@@ -8,13 +8,3 @@ Topics explored :
 Recursive functions
 Formatting outputs
 Text based user entry and validation
-
-
-Read Image function
-(This can incorporate camera later)
-
-Process image function
-(return coordinates)
-
-Read puzzle
-(Output array)
