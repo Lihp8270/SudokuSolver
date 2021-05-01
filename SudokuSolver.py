@@ -3,6 +3,28 @@ import cv2
 import numpy as np
 from PIL import Image
 from PrivatePaths import *
+from FourPointTransform import transform
+
+def capture_image():
+    cap = cv2.VideoCapture(0)
+
+    while(True):
+        # Capture frame-by-frame
+        ret, frame = cap.read()
+        
+        # Our operations on the frame come here
+        #gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # Display the resulting frame
+        cv2.imshow('frame',frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            img = frame
+            break
+
+    # When everything done, release the capture
+    cap.release()
+    cv2.destroyAllWindows()
+    return capturedImage
 
 def create_board(l, n):
     for i in range(0, len(l), n): 
@@ -12,8 +34,8 @@ def split(word):
     return list(word)
 
 def image_preprocess(capImg):
-    img = cv2.imread(capImg)
-
+    #img = cv2.imread(capImg)
+    img = capImg
     grayImg = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     grayImg = cv2.GaussianBlur(grayImg,(5,5),0)
     threshImg = cv2.adaptiveThreshold(grayImg,255,1,1,11,2)
@@ -135,6 +157,7 @@ def solve_board(board):
     return False
 
 if __name__ == '__main__':
+    capturedImage = capture_image()
 
     gray, thresh = image_preprocess(testImage)
     x, y, gridSize = split_puzzle(thresh)

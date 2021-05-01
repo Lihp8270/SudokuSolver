@@ -38,13 +38,13 @@ def transform(image, coords):
     maxHeight = max(int(heightA), int(heightB))
 
     dst = np.array([
-        [0,0],
-        [maxWidth - 1,0],
+        [10,10],
+        [maxWidth - 1,10],
         [maxWidth -1, maxHeight - 1],
-        [0, maxHeight -1]], dtype="float32")
+        [10, maxHeight -1]], dtype="float32")
     
     trans = cv2.getPerspectiveTransform(points, dst)
-    straightImage = cv2.warpPerspective(image, trans, (maxWidth, maxHeight))
+    straightImage = cv2.warpPerspective(image, trans, (maxWidth+25, maxHeight+25))
     straightImage = cv2.flip(straightImage, 1)
 
     return straightImage

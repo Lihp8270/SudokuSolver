@@ -16,7 +16,32 @@ def split(word):
 # Image pre-process function
 # Inputs required -- Captured image
 # Output -- Threshold Image
-img = cv2.imread(testImage)
+
+cap = cv2.VideoCapture(0)
+
+while(True):
+    # Capture frame-by-frame
+    ret, frame = cap.read()
+    
+    # Our operations on the frame come here
+    #gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # Display the resulting frame
+    cv2.imshow('frame',frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        img = frame
+        break
+
+# When everything done, release the capture
+cap.release()
+cv2.destroyAllWindows()
+
+cv2.imshow('recorded image', img)
+cv2.waitKey(0)
+
+
+
+#img = cv2.imread(testImage)
 grayImg = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 #cv2.imshow('first gray', grayImg)
 #cv2.waitKey(0)
