@@ -11,20 +11,17 @@ def capture_image():
     while(True):
         # Capture frame-by-frame
         ret, frame = cap.read()
-        
-        # Our operations on the frame come here
-        #gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         # Display the resulting frame
-        cv2.imshow('frame',frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.imshow('Press C to continue',frame)
+        if cv2.waitKey(1) & 0xFF == ord('c'):
             img = frame
             break
 
     # When everything done, release the capture
     cap.release()
     cv2.destroyAllWindows()
-    return capturedImage
+    return img
 
 def create_board(l, n):
     for i in range(0, len(l), n): 
@@ -34,19 +31,26 @@ def split(word):
     return list(word)
 
 def image_preprocess(capImg):
-    #img = cv2.imread(capImg)
     img = capImg
+
+    img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC) # Resize to increase DPI
+    
+    kernel = np.ones((1, 1), np.uint8)
     grayImg = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    grayImg = cv2.GaussianBlur(grayImg,(5,5),0)
-    threshImg = cv2.adaptiveThreshold(grayImg,255,1,1,11,2)
+    grayImg = cv2.dilate(grayImg, kernel, iterations=1)
+    grayImg = cv2.erode(grayImg, kernel, iterations=1)
 
-    return grayImg, threshImg
+    blurImg = cv2.GaussianBlur(grayImg,(5,5),0)
+    
+    threshImg = cv2.adaptiveThreshold(blurImg,255,1,1,11,2)
 
-def split_puzzle(puzzle):
+    return blurImg, threshImg
+
+def find_puzzle(image):
     biggest = None
     maxArea = 0
 
-    contours, hierarchy = cv2.findContours(puzzle, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     for i in contours:
         area = cv2.contourArea(i)
@@ -56,38 +60,68 @@ def split_puzzle(puzzle):
                 if area > maxArea and len(approx)==4:
                         biggest = approx
                         maxArea = area
+    return biggest
 
-    x = biggest[0][0][0]
-    y = biggest[0][0][1]
-    gridSize = int((biggest[2][0][0] - biggest[0][0][0]) / 9)
-
-    return x, y, gridSize
-
-def ocr_puzzle(x, y, gridSize, puzzle):
-    initialX = x
-    initialY = y
+def ocr_puzzle(img, gridSizeX, gridSizeY):
+    x = 0
+    y = 0
     sudokuArray = []
     sudokuRow = []
     k = 0
     r = 0
+    cnt = 0
+
     while r < 9:
         while k < 9:
-            croppedImg = puzzle[y:y+gridSize, x:x+gridSize]
+            croppedImg = img[y:y+gridSizeY, x:x+gridSizeX]
+            '''
+            cnt += 1
+            cv2.imshow(str(cnt),croppedImg)
+            cv2.waitKey(0)
+            cv2.destroyWindow(str(cnt))
+            '''
             ocr = pytesseract.image_to_string(croppedImg, config="-c tessedit_char_whitelist=0123456789 --psm 10")
+            # print(ocr)
             if len(split(ocr)) == 1:
                 ocr = 0
             else:
                 ocr = int(split(ocr)[0])
             sudokuRow.append(ocr)
             k += 1
-            x += gridSize
+            x += gridSizeX
+
         k = 0
-        x = initialX
-        y += gridSize
+        x = 0
+        y += gridSizeY
         r += 1
 
     sudokuArray = list(create_board(sudokuRow,9))
     return sudokuArray
+
+def get_gridsize(image):
+    dimensions = np.shape(image)
+    height = dimensions[0]
+    width = dimensions[1]
+    print(width)
+
+    gridSizeX = width/9
+    gridSizeY = height/9
+
+    return gridSizeX, gridSizeY
+
+def get_puzzle():
+    initCap = capture_image()
+    grayImg, threshImg = image_preprocess(initCap)
+    puzzleArray = find_puzzle(threshImg)
+    straightPuzzle = transform(grayImg, puzzleArray)
+
+    gridSizeX, gridSizeY = get_gridsize(straightPuzzle)
+    gridSizeX = int(gridSizeX)
+    gridSizeY = int(gridSizeY)
+
+    sudokuBoard = ocr_puzzle(straightPuzzle, gridSizeX, gridSizeY)
+
+    return sudokuBoard
 
 def validate_board_entry(boardInput):
     print_formatted_board(boardInput)
@@ -157,11 +191,8 @@ def solve_board(board):
     return False
 
 if __name__ == '__main__':
-    capturedImage = capture_image()
-
-    gray, thresh = image_preprocess(testImage)
-    x, y, gridSize = split_puzzle(thresh)
-    sudokuBoard = ocr_puzzle(x, y, gridSize, gray)
+    
+    sudokuBoard = get_puzzle()
 
     if validate_board_entry(sudokuBoard):
         if solve_board(sudokuBoard) and sudokuBoard != False:
